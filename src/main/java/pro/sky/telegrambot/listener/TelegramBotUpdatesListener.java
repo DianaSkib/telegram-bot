@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pro.sky.telegrambot.service.NotificationTaskService;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
@@ -20,6 +21,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     @Autowired
     private TelegramBot telegramBot;
 
+    @Autowired
+    private NotificationTaskService notificationTaskService;
+
     @PostConstruct
     public void init() {
         telegramBot.setUpdatesListener(this);
@@ -31,14 +35,22 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
             updates.forEach(update -> {
                 logger.info("Processing update: {}", update);
 
-                if (update.message() != null && "/start".equals(update.message().text())) {
-                    Long chatId = update.message().chat().id();
+                if (update.message() == null) {
+                    return;
+                }
+
+                String text = update.message().text();
+                Long chatId = update.message().chat().id();
+
+                if ("/start".equals(text)) {
                     SendMessage message = new SendMessage(chatId,
                             "Привет! Я бот-напоминалка. " +
                                     "Отправь мне сообщение в формате: " +
                                     "'01.01.2022 20:00 Сделать домашнюю работу', " +
                                     "и я напомню тебе в назначенное время!");
                     telegramBot.execute(message);
+                } else {
+                    notificationTaskService.parseAndSave(chatId, text);
                 }
             });
         } catch (Exception e) {
@@ -46,5 +58,4 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
         }
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
-
 }
