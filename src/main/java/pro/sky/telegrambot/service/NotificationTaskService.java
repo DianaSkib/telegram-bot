@@ -1,5 +1,7 @@
 package pro.sky.telegrambot.service;
 
+import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.request.SendMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,9 +27,11 @@ public class NotificationTaskService {
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     private final NotificationTaskRepository notificationTaskRepository;
+    private final TelegramBot telegramBot;
 
-    public NotificationTaskService(NotificationTaskRepository notificationTaskRepository) {
+    public NotificationTaskService(NotificationTaskRepository notificationTaskRepository, TelegramBot telegramBot) {
         this.notificationTaskRepository = notificationTaskRepository;
+        this.telegramBot = telegramBot;
     }
 
     public void parseAndSave(Long chatId, String messageText) {
@@ -66,9 +70,10 @@ public class NotificationTaskService {
         logger.info("Found {} notification tasks for current minute", tasks.size());
 
         for (NotificationTask task : tasks) {
-            logger.info("Task to notify: chatId={}, message='{}'",
+            SendMessage message = new SendMessage(task.getChatId(), task.getMessage());
+            telegramBot.execute(message);
+            logger.info("Sent notification to chatId={}: {}",
                     task.getChatId(), task.getMessage());
-            // Отправка сообщений будет в задаче 2.6
         }
     }
 }
